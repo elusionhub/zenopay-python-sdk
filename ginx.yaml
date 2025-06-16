@@ -52,12 +52,19 @@ scripts:
     description: Bump the major version of the package
   
   commit:
-    command: git add . && git commit -m ${message:string}
+    command: 'git add . && git commit -m "elusion: Release new v"'
     description: Commit changes (new + tracked)
 
   push-main:
     command: git push origin main
     description: Push changes to the remote repository
+  
+  push-tag:
+    command: git push origin --tags
+    description: Push tags to the remote repository
+    depends:
+      - commit
+      - push-main
 
 # Settings
 settings:
