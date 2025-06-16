@@ -63,8 +63,8 @@ scripts:
     command: git push origin --tags
     description: Push tags to the remote repository
     depends:
-      - commit
       - push-main
+      - commit
 
 # Settings
 settings:
