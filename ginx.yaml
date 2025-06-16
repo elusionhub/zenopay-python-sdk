@@ -50,6 +50,10 @@ scripts:
   major:
     command: bump-my-version bump major
     description: Bump the major version of the package
+  
+  commit:
+    command: git add . && git commit -m ${message:string}
+    description: Commit changes (new + tracked)
 
 # Settings
 settings:

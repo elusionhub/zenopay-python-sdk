@@ -1,4 +1,4 @@
-# import asyncio
+import asyncio
 from elusion.zenopay import ZenoPay
 from elusion.zenopay.models.order import NewOrder
 
@@ -83,13 +83,13 @@ if __name__ == "__main__":
     print(f"Order ID: {order_content}")
 
     # Async usage
-    # async def async_example():
-    #     order_id = await create_order_async()
-    #     status = await check_status_async(order_id)
-    #     is_paid = await check_payment_async(order_id)
+    async def async_example():
+        order_id = await create_order_async()
+        status = await check_status_async(order_id)
+        is_paid = await check_payment_async(order_id)
 
-    #     print(f"Async Order: {order_id}")
-    #     print(f"Async Status: {status}")
-    #     print(f"Async Paid: {is_paid}")
+        print(f"Async Order: {order_id}")
+        print(f"Async Status: {status}")
+        print(f"Async Paid: {is_paid}")
 
-    # asyncio.run(async_example())
+    asyncio.run(async_example())
