@@ -1,0 +1,10 @@
+pydantic
+python-dotenv
+typing-extensions
+httpx
+pytest
+ginx
+flake8-pyproject
+black
+pytest-cov
+bump-my-version
