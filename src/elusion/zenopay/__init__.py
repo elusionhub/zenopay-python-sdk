@@ -4,7 +4,7 @@ A modern Python SDK for the ZenoPay payment API with support for USSD payments,
 order management, and webhook handling.
 """
 
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 __author__ = "Elution Hub"
 __email__ = "elusion.lab@gmail.com"
 
