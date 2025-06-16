@@ -55,6 +55,10 @@ scripts:
     command: git add . && git commit -m ${message:string}
     description: Commit changes (new + tracked)
 
+  push-main:
+    command: git push origin main
+    description: Push changes to the remote repository
+
 # Settings
 settings:
   dangerous_commands: true
