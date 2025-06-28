@@ -1,6 +1,6 @@
 # ZenoPay Python SDK
 
-Modern Python SDK for ZenoPay payment API with async/sync support and webhook handling.
+Modern Python SDK for ZenoPay payment API with async/sync support, order management, and disbursements.
 
 ## Installation
 
@@ -13,20 +13,22 @@ pip install zenopay-sdk
 ```python
 from elusion.zenopay import ZenoPay
 from elusion.zenopay.models.order import NewOrder
+from elusion.zenopay.utils import generate_order_id
 
-# Initialize client
-client = ZenoPay(account_id="your_account_id")
+# Initialize client (uses environment variables)
+client = ZenoPay()
 
 # Create order (sync)
 with client:
     order = NewOrder(
+        order_id=generate_order_id(),
         buyer_email="customer@example.com",
         buyer_name="John Doe",
-        buyer_phone="0700000000",
+        buyer_phone="07XXXXXXXX",
         amount=1000
     )
     response = client.orders.sync.create(order)
-    print(f"Order ID: {response.data.order_id}")
+    print(f"Order ID: {response.results.order_id}")
 ```
 
 ## Configuration
@@ -34,88 +36,158 @@ with client:
 ### Environment Variables
 
 ```bash
-export ZENOPAY_ACCOUNT_ID="your_account_id"
-export ZENOPAY_API_KEY="your_api_key"        # Optional
-export ZENOPAY_SECRET_KEY="your_secret_key"  # Optional
+export ZENOPAY_API_KEY="your_api_key"
 ```
 
 ### Code Configuration
 
 ```python
 client = ZenoPay(
-    account_id="your_account_id",
     api_key="your_api_key",
-    secret_key="your_secret_key",
     timeout=30.0
 )
 ```
 
-## API Usage
+## Orders API
 
 ### Synchronous Operations
 
 ```python
+from elusion.zenopay import ZenoPay
+from elusion.zenopay.models.order import NewOrder
+from elusion.zenopay.utils import generate_order_id
+
+client = ZenoPay()
+
 # Create order
-with client:
-    order_data = {
-        "buyer_email": "test@example.com",
-        "buyer_name": "Test User",
-        "buyer_phone": "0700000000",
-        "amount": 5000,
-        "webhook_url": "https://yoursite.com/webhook"
-    }
-    response = client.orders.sync.create(order_data)
-    order_id = response.data.order_id
+def create_order():
+    with client:
+        order = NewOrder(
+            order_id=generate_order_id(),
+            buyer_email="test@example.com",
+            buyer_name="Test User",
+            buyer_phone="07XXXXXXXX",
+            amount=1000,
+        )
+        response = client.orders.sync.create(order)
+        return response.results.order_id
 
 # Check status
-with client:
-    status = client.orders.sync.get_status(order_id)
-    print(f"Payment status: {status.data.payment_status}")
+def check_status(order_id: str):
+    with client:
+        response = client.orders.sync.check_status(order_id)
+        return response.results
 
 # Check if paid
-with client:
-    is_paid = client.orders.sync.check_payment(order_id)
+def check_payment(order_id: str):
+    with client:
+        return client.orders.sync.check_payment(order_id)
+
+# Wait for payment completion
+def wait_for_payment(order_id: str):
+    with client:
+        return client.orders.sync.wait_for_payment(order_id)
+
+# Usage example
+if __name__ == "__main__":
+    order_id = create_order()
+    status = check_status(order_id)
+    is_paid = check_payment(order_id)
+
+    print(f"Order: {order_id}")
+    print(f"Status: {status.data[0].payment_status}")
     print(f"Paid: {is_paid}")
 
-# Wait for payment
-with client:
-    try:
-        completed = client.orders.sync.wait_for_payment(order_id, timeout=300)
-        print("Payment completed!")
-    except TimeoutError:
-        print("Payment timeout")
+    order_content = wait_for_payment(order_id)
+    print(f"Order completed: {order_content}")
 ```
 
 ### Asynchronous Operations
 
 ```python
 import asyncio
+from elusion.zenopay import ZenoPay
+from elusion.zenopay.models.order import NewOrder
+from elusion.zenopay.utils import generate_order_id
 
-async def create_payment():
+client = ZenoPay()
+
+# Create order (async)
+async def create_order_async():
     async with client:
-        order_data = {
-            "buyer_email": "test@example.com",
-            "buyer_name": "Test User",
-            "buyer_phone": "0700000000",
-            "amount": 5000
-        }
+        order = NewOrder(
+            order_id=generate_order_id(),
+            buyer_email="test@example.com",
+            buyer_name="Test User",
+            buyer_phone="07XXXXXXXX",
+            amount=1000,
+            webhook_url="https://example.com/webhook",
+            metadata={"key": "value"},
+        )
+        response = await client.orders.create(order)
+        return response.results.order_id
 
-        # Create order
-        response = await client.orders.create(order_data)
-        order_id = response.data.order_id
+# Check status (async)
+async def check_status_async(order_id: str):
+    async with client:
+        response = await client.orders.check_status(order_id)
+        return response.results.data[0].payment_status
 
-        # Check status
-        status = await client.orders.get_status(order_id)
-        print(f"Status: {status.data.payment_status}")
+# Check payment (async)
+async def check_payment_async(order_id: str):
+    async with client:
+        return await client.orders.check_payment(order_id)
 
-        # Wait for completion
-        try:
-            completed = await client.orders.wait_for_payment(order_id)
-            print("Payment completed!")
-        except TimeoutError:
-            print("Payment timeout")
+# Usage example
+async def async_example():
+    order_id = await create_order_async()
+    status = await check_status_async(order_id)
+    is_paid = await check_payment_async(order_id)
 
-asyncio.run(create_payment())
+    print(f"Async Order: {order_id}")
+    print(f"Async Status: {status}")
+    print(f"Async Paid: {is_paid}")
+
+asyncio.run(async_example())
+```
+
+## Disbursements API
+
+### Mobile Money Disbursements
+
+```python
+from elusion.zenopay import ZenoPay
+from elusion.zenopay.models.disbursement import NewDisbursement, UtilityCodes
+from elusion.zenopay.utils import generate_order_id
+
+client = ZenoPay()
+
+def disburse():
+    response = client.disbursements.sync.disburse(
+        disbursement_data=NewDisbursement(
+            amount=5000,
+            pin=0000,  # Your ZenoPay PIN
+            transid=generate_order_id(),
+            utilitycode=UtilityCodes.CASHIN,
+            utilityref="07XXXXXXXX"  # Phone number
+        )
+    )
+    return response.results.zenopay_response.result
+
+# Usage
+if __name__ == "__main__":
+    result = disburse()
+    print(f"Disbursement result: {result}")
+```
+
+### Available Utility Codes
+
+```python
+from elusion.zenopay.models.disbursement import UtilityCodes
+
+# Available disbursement types
+UtilityCodes.CASHIN      # Mobile money cash-in
+# Add other available codes as needed
 ```
 
 ## Webhook Handling
@@ -146,9 +218,10 @@ response = client.webhooks.process_webhook_request(webhook_data)
 
 ```python
 from flask import Flask, request, jsonify
+from elusion.zenopay import ZenoPay
 
 app = Flask(__name__)
-client = ZenoPay(account_id="your_account_id")
+client = ZenoPay()
 
 def handle_completed_payment(event):
     order_id = event.payload.order_id
@@ -171,9 +244,10 @@ if __name__ == '__main__':
 
 ```python
 from fastapi import FastAPI, Request
+from elusion.zenopay import ZenoPay
 
 app = FastAPI()
-client = ZenoPay(account_id="your_account_id")
+client = ZenoPay()
 
 def handle_completed_payment(event):
     order_id = event.payload.order_id
@@ -195,33 +269,38 @@ async def webhook(request: Request):
 from elusion.zenopay.exceptions import (
     ZenoPayError,
     ZenoPayValidationError,
-    ZenoPayNetworkError
+    ZenoPayNetworkError,
+    ZenoPayAuthenticationError
 )
 
 try:
     with client:
-        response = client.orders.sync.create(order_data)
+        response = client.orders.sync.create(order)
 except ZenoPayValidationError as e:
     print(f"Validation error: {e.message}")
     print(f"Details: {e.validation_errors}")
+except ZenoPayAuthenticationError as e:
+    print(f"Authentication error: {e.message}")
 except ZenoPayNetworkError as e:
     print(f"Network error: {e.message}")
 except ZenoPayError as e:
     print(f"General error: {e.message}")
 ```
 
-## Order Models
+## Models
 
-### Creating Orders
+### Order Models
 
 ```python
 from elusion.zenopay.models.order import NewOrder
+from elusion.zenopay.utils import generate_order_id
 
-# Using model
+# Create order with all fields
 order = NewOrder(
+    order_id=generate_order_id(),
     buyer_email="customer@example.com",
     buyer_name="John Doe",
-    buyer_phone="0700000000",
+    buyer_phone="07XXXXXXXX",
     amount=1000,
     webhook_url="https://yoursite.com/webhook",
     metadata={
@@ -230,13 +309,30 @@ order = NewOrder(
     }
 )
 
-# Using dictionary
-order_data = {
-    "buyer_email": "customer@example.com",
-    "buyer_name": "John Doe",
-    "buyer_phone": "0700000000",
-    "amount": 1000
-}
+# Minimal order
+order = NewOrder(
+    order_id=generate_order_id(),
+    buyer_email="customer@example.com",
+    buyer_name="John Doe",
+    buyer_phone="07XXXXXXXX",
+    amount=1000
+)
+```
+
+### Disbursement Models
+
+```python
+from elusion.zenopay.models.disbursement import NewDisbursement, UtilityCodes
+from elusion.zenopay.utils import generate_order_id
+
+# Mobile money disbursement
+disbursement = NewDisbursement(
+    amount=5000,
+    pin=0000,  # Your ZenoPay PIN
+    transid=generate_order_id(),
+    utilitycode=UtilityCodes.CASHIN,
+    utilityref="07XXXXXXXX"  # Phone number
+)
 ```
 
 ### Response Models
@@ -244,14 +340,15 @@ order_data = {
 ```python
 # Order creation response
 response = client.orders.sync.create(order)
-print(f"Order ID: {response.data.order_id}")
-print(f"Status: {response.data.status}")
-print(f"Message: {response.data.message}")
+print(f"Order ID: {response.results.order_id}")
 
 # Status check response
-status = client.orders.sync.get_status(order_id)
-print(f"Payment Status: {status.data.payment_status}")
-print(f"Order ID: {status.data.order_id}")
+status = client.orders.sync.check_status(order_id)
+print(f"Payment Status: {status.results.data[0].payment_status}")
+
+# Disbursement response
+response = client.disbursements.sync.disburse(disbursement_data)
+print(f"Result: {response.results.zenopay_response.result}")
 ```
 
 ## API Reference
@@ -261,9 +358,15 @@ print(f"Order ID: {status.data.order_id}")
 | Method           | Sync                                    | Async                                    | Description                |
 | ---------------- | --------------------------------------- | ---------------------------------------- | -------------------------- |
 | Create Order     | `client.orders.sync.create()`           | `await client.orders.create()`           | Create new payment order   |
-| Get Status       | `client.orders.sync.get_status()`       | `await client.orders.get_status()`       | Check order payment status |
+| Check Status     | `client.orders.sync.check_status()`     | `await client.orders.check_status()`     | Check order payment status |
 | Check Payment    | `client.orders.sync.check_payment()`    | `await client.orders.check_payment()`    | Returns boolean if paid    |
 | Wait for Payment | `client.orders.sync.wait_for_payment()` | `await client.orders.wait_for_payment()` | Poll until completed       |
+
+### Disbursement Operations
+
+| Method   | Sync                                   | Async                                   | Description             |
+| -------- | -------------------------------------- | --------------------------------------- | ----------------------- |
+| Disburse | `client.disbursements.sync.disburse()` | `await client.disbursements.disburse()` | Send money disbursement |
 
 ### Webhook Events
 
@@ -273,15 +376,6 @@ print(f"Order ID: {status.data.order_id}")
 | FAILED    | `client.webhooks.on_payment_failed()`    | Payment failed     |
 | PENDING   | `client.webhooks.on_payment_pending()`   | Payment initiated  |
 | CANCELLED | `client.webhooks.on_payment_cancelled()` | Payment cancelled  |
-
-## Testing
-
-```python
-# Create test webhook
-test_event = client.webhooks.create_test_webhook("test-order-123", "COMPLETED")
-response = client.webhooks.handle_webhook(test_event)
-print(f"Test response: {response.status}")
-```
 
 ## Best Practices
 
@@ -321,8 +415,19 @@ Use environment variables for sensitive configuration:
 
 ```python
 # Don't hardcode credentials
-client = ZenoPay(account_id=os.getenv('ZENOPAY_ACCOUNT_ID'))
+client = ZenoPay(api_key=os.getenv('ZENOPAY_API_KEY'))
 ```
+
+### Generate Unique Order IDs
+
+Always use the built-in utility to generate unique order IDs:
+
+```python
+from elusion.zenopay.utils import generate_order_id
+
+order_id = generate_order_id()  # Generates UUID-based unique ID
+```
+
 
 ## Support
 

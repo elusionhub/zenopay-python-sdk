@@ -1,19 +1,18 @@
 """Order-related models for the ZenoPay SDK."""
 
-from datetime import datetime
-from typing import Any, Dict, Optional, Union
-
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class OrderBase(BaseModel):
     """Base order model with common fields."""
 
+    order_id: str = Field(..., description="Unique order id")
     buyer_email: str = Field(..., description="Buyer's email address")
     buyer_name: str = Field(..., description="Buyer's full name")
     buyer_phone: str = Field(..., description="Buyer's phone number")
     amount: int = Field(..., gt=0, description="Order amount in smallest currency unit")
-    webhook_url: Optional[str] = Field(None, description="URL to receive webhook notifications")
+    webhook_url: Optional[str] = Field(default=None, description="URL to receive webhook notifications")
 
     @field_validator("buyer_email")
     def validate_email(cls, v: str) -> str:
@@ -25,7 +24,6 @@ class OrderBase(BaseModel):
     @field_validator("buyer_phone")
     def validate_phone(cls, v: str) -> str:
         """Validate phone number format."""
-        # Remove any non-digit characters except +
         cleaned = "".join(c for c in v if c.isdigit() or c == "+")
         if len(cleaned) < 10:
             raise ValueError("Phone number must be at least 10 digits")
@@ -44,7 +42,7 @@ class OrderBase(BaseModel):
 class NewOrder(OrderBase):
     """Model for creating a new order."""
 
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional order metadata")
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Additional order metadata")
 
     @field_validator("metadata")
     def validate_metadata(cls, v: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
@@ -94,11 +92,6 @@ class Order(BaseModel):
     # Additional information
     webhook_url: Optional[str] = Field(None, description="Webhook URL")
     metadata: Optional[Dict[str, Any]] = Field(None, description="Order metadata")
-
-    # Timestamps
-    created_at: Optional[datetime] = Field(None, description="Order creation time")
-    updated_at: Optional[datetime] = Field(None, description="Last update time")
-    completed_at: Optional[datetime] = Field(None, description="Payment completion time")
 
     @field_validator("payment_status")
     def validate_payment_status(cls, v: str) -> str:
@@ -155,9 +148,6 @@ class Order(BaseModel):
                     "size": "L",
                     "custom_notes": "Please gift-wrap this item.",
                 },
-                "created_at": "2025-06-15T10:00:00Z",
-                "updated_at": "2025-06-15T10:05:00Z",
-                "completed_at": "2025-06-15T10:05:00Z",
             }
         }
     )
@@ -166,86 +156,37 @@ class Order(BaseModel):
 class OrderResponse(BaseModel):
     """Response model for order operations."""
 
-    status: str = Field("success", description="Status of the operation (success or error)")
-    message: str = Field(
-        "Order created successfully",
-        description="Message describing the operation result",
-    )
-    order_id: str = Field(..., description="ID of the created or updated order")
+    status: str
+    message: str
+    resultcode: int
+    order_id: str
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
+                "order_id": "2cd93967-0d48-46c7-a9ab-f0a0a21a11cd",
+                "resultcode": "000",
                 "status": "success",
                 "message": "Order created successfully",
-                "order_id": "66c4bb9c9abb1",
             }
         }
     )
+
+
+class OrderData(BaseModel):
+    order_id: str
+    creation_date: str
+    amount: str
+    payment_status: str
+    transid: Optional[str] = None
+    channel: Optional[str] = None
+    reference: Optional[str] = None
+    msisdn: Optional[str] = None
 
 
 class OrderStatusResponse(BaseModel):
-    status: str = Field("success", description="Status of the operation (success or error)")
-    order_id: str = Field(..., description="ID of the order")
-    message: str = Field(
-        "Order status retrieved successfully",
-        description="Message describing the operation result",
-    )
-    payment_status: str = Field("PENDING", description="Current payment status of the order")
-
-
-class OrderListParams(BaseModel):
-    """Parameters for listing orders."""
-
-    status: Optional[str] = Field(None, description="Filter by payment status")
-    buyer_email: Optional[str] = Field(None, description="Filter by buyer email")
-    date_from: Optional[Union[datetime, str]] = Field(None, description="Filter orders from this date")
-    date_to: Optional[Union[datetime, str]] = Field(None, description="Filter orders to this date")
-    limit: Optional[int] = Field(50, ge=1, le=100, description="Number of orders to return")
-
-    @field_validator("status")
-    def validate_status(cls, v: Optional[str]) -> Optional[str]:
-        """Validate status filter."""
-        if v is not None:
-            valid_statuses = ["PENDING", "COMPLETED", "FAILED", "CANCELLED"]
-            if v not in valid_statuses:
-                raise ValueError(f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
-        return v
-
-    @field_validator("date_from", mode="before")
-    def parse_date_from(cls, v: Union[str, datetime, None]) -> Union[datetime, None]:
-        """Parse string dates to datetime objects for date_from."""
-        if isinstance(v, str):
-            try:
-                return datetime.fromisoformat(v.replace("Z", "+00:00"))
-            except ValueError:
-                try:
-                    return datetime.strptime(v, "%Y-%m-%d")
-                except ValueError:
-                    raise ValueError(f"Invalid date format: {v}")
-        return v
-
-    @field_validator("date_to", mode="before")
-    def parse_date_to(cls, v: Union[str, datetime, None]) -> Union[datetime, None]:
-        """Parse string dates to datetime objects for date_to."""
-        if isinstance(v, str):
-            try:
-                return datetime.fromisoformat(v.replace("Z", "+00:00"))
-            except ValueError:
-                try:
-                    return datetime.strptime(v, "%Y-%m-%d")
-                except ValueError:
-                    raise ValueError(f"Invalid date format: {v}")
-        return v
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "status": "COMPLETED",
-                "buyer_email": "jackson@gmail.com",
-                "date_from": "2025-06-01",
-                "date_to": "2025-06-15",
-                "limit": 50,
-            }
-        }
-    )
+    reference: str
+    resultcode: str
+    result: str
+    message: str
+    data: List[OrderData]

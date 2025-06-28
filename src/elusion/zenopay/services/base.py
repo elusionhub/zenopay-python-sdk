@@ -1,6 +1,6 @@
 """Base service class for all ZenoPay SDK services."""
 
-from typing import Any, Dict, Type, TypeVar, Union
+from typing import Any, Dict, Type, TypeVar, Union, Optional
 
 from pydantic import BaseModel, ValidationError
 
@@ -53,15 +53,28 @@ class BaseService:
         else:
             request_data = data.copy()
 
-        request_data.update(
-            {
-                "account_id": self.config.account_id,
-                "api_key": self.config.api_key or "null",
-                "secret_key": self.config.secret_key or "null",
-            }
-        )
-
         return request_data
+
+    def _prepare_query_params(self, params: Optional[Union[BaseModel, Dict[str, Any]]] = None) -> Dict[str, Any]:
+        """Prepare and validate query parameters for GET requests.
+
+        Args:
+            params: Parameters to prepare for the request.
+
+        Returns:
+            Prepared query parameters dictionary.
+
+        Raises:
+            ZenoPayValidationError: If validation fails.
+        """
+        if params is None:
+            query_params = {}
+        elif isinstance(params, BaseModel):
+            query_params = params.model_dump(exclude_unset=True, by_alias=True)
+        else:
+            query_params = params.copy()
+
+        return query_params
 
     def _parse_response(
         self,
@@ -81,27 +94,14 @@ class BaseService:
             ZenoPayValidationError: If response parsing fails.
         """
         try:
-            if "success" in response_data:
-                success = response_data.get("success", True)
-                data = response_data.get("data", response_data)
-                message = response_data.get("message")
-                error = response_data.get("error")
-
-                if success and data:
-                    parsed_data = model_class.model_validate(data)
-                else:
-                    # Error response
-                    raise ZenoPayValidationError(error or "Unknown API error")
-            else:
-                # Direct data response
-                parsed_data = model_class.model_validate(response_data)
-                success = True
-                message = None
-                error = None
+            parsed_data = model_class.model_validate(response_data)
+            success = True
+            message = response_data.get("message", None)
+            error = None
 
             return APIResponse[model_class](
                 success=success,
-                data=parsed_data,
+                results=parsed_data,
                 message=message,
                 error=error,
             )
@@ -131,26 +131,8 @@ class BaseService:
         url = self._build_url(endpoint)
         prepared_data = self._prepare_request_data(data)
 
-        response_data = await self.http_client.post(url, data=prepared_data)
+        response_data = await self.http_client.post(url, json=prepared_data)
         return self._parse_response(response_data, model_class)
-
-    async def _post(
-        self,
-        endpoint: str,
-        data: Union[BaseModel, Dict[str, Any]],
-        model_class: Type[T],
-    ) -> APIResponse[T]:
-        """Make a POST request (legacy method name).
-
-        Args:
-            endpoint: API endpoint name.
-            data: Data to send in the request.
-            model_class: Model class to parse response into.
-
-        Returns:
-            Parsed API response.
-        """
-        return await self.post_async(endpoint, data, model_class)
 
     def post_sync(
         self,
@@ -171,5 +153,49 @@ class BaseService:
         url = self._build_url(endpoint)
         prepared_data = self._prepare_request_data(data)
 
-        response_data = self.http_client.post_sync(url, data=prepared_data)
+        response_data = self.http_client.post_sync(url, json=prepared_data)
+        return self._parse_response(response_data, model_class)
+
+    async def get_async(
+        self,
+        endpoint: str,
+        model_class: Type[T],
+        params: Optional[Union[BaseModel, Dict[str, Any]]] = None,
+    ) -> APIResponse[T]:
+        """Make an async GET request.
+
+        Args:
+            endpoint: API endpoint name.
+            model_class: Model class to parse response into.
+            params: Optional query parameters to send with the request.
+
+        Returns:
+            Parsed API response.
+        """
+        url = self._build_url(endpoint)
+        query_params = self._prepare_query_params(params)
+
+        response_data = await self.http_client.get(url, params=query_params)
+        return self._parse_response(response_data, model_class)
+
+    def get_sync(
+        self,
+        endpoint: str,
+        model_class: Type[T],
+        params: Optional[Union[BaseModel, Dict[str, Any]]] = None,
+    ) -> APIResponse[T]:
+        """Make a sync GET request.
+
+        Args:
+            endpoint: API endpoint name.
+            model_class: Model class to parse response into.
+            params: Optional query parameters to send with the request.
+
+        Returns:
+            Parsed API response.
+        """
+        url = self._build_url(endpoint)
+        query_params = self._prepare_query_params(params)
+
+        response_data = self.http_client.get_sync(url, params=query_params)
         return self._parse_response(response_data, model_class)

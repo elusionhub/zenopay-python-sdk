@@ -1,7 +1,7 @@
 """HTTP client for the ZenoPay SDK."""
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import httpx
 
@@ -74,11 +74,50 @@ class HTTPClient:
             self._sync_client.close()
             self._sync_client = None
 
+    def _clean_params(self, params: Optional[Dict[str, Any]]) -> Optional[Dict[str, str]]:
+        """Clean query parameters by removing None values and converting to strings.
+
+        Args:
+            params: Query parameters to clean.
+
+        Returns:
+            Cleaned parameters dictionary or None.
+        """
+        if not params:
+            return None
+
+        cleaned_params: Dict[str, str] = {}
+        for key, value in params.items():
+            if value is not None:
+                cleaned_params[str(key)] = str(value)
+
+        return cleaned_params if cleaned_params else None
+
+    def _clean_data(self, data: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """Clean form data by removing None values and converting to strings.
+
+        Args:
+            data: Form data to clean.
+
+        Returns:
+            Cleaned data dictionary or None.
+        """
+        if not data:
+            return None
+
+        cleaned_data: Dict[str, Any] = {}
+        for key, value in data.items():
+            if value is not None:
+                cleaned_data[key] = str(value)
+
+        return cleaned_data if cleaned_data else None
+
     async def request(
         self,
         method: str,
         url: str,
         data: Optional[Dict[str, Any]] = None,
+        params: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
@@ -87,7 +126,8 @@ class HTTPClient:
         Args:
             method: HTTP method (GET, POST, PUT, DELETE, etc.).
             url: Request URL.
-            data: Form data to send.
+            data: Form data to send (for POST/PUT requests).
+            params: Query parameters to send (for GET requests).
             headers: Additional headers.
             **kwargs: Additional arguments for httpx.
 
@@ -105,15 +145,10 @@ class HTTPClient:
         if headers:
             request_headers.update(headers)
 
-        if data:
-            cleaned_data = {}
-            for key, value in data.items():
-                if value is not None:
-                    cleaned_data[key] = str(value)
-            data = cleaned_data
+        cleaned_data = self._clean_data(data)
+        cleaned_params = self._clean_params(params)
 
         try:
-            logger.debug(f"Making {method} request to {url}")
 
             if self._client is None:
                 raise ZenoPayNetworkError("Async HTTP client is not initialized.", None)
@@ -121,7 +156,8 @@ class HTTPClient:
             response = await self._client.request(
                 method=method,
                 url=url,
-                data=data,
+                data=cleaned_data,
+                params=cleaned_params,
                 headers=request_headers,
                 **kwargs,
             )
@@ -129,16 +165,13 @@ class HTTPClient:
             return await self._handle_response(response)
 
         except httpx.TimeoutException as e:
-            logger.error(f"Request timeout: {e}")
             raise ZenoPayTimeoutError(
                 f"Request timeout after {self.config.timeout} seconds",
                 self.config.timeout,
             ) from e
         except httpx.NetworkError as e:
-            logger.error(f"Network error: {e}")
             raise ZenoPayNetworkError(f"Network error: {str(e)}", e) from e
         except Exception as e:
-            logger.error(f"Unexpected error: {e}")
             raise ZenoPayNetworkError(f"Unexpected error: {str(e)}", e) from e
 
     def request_sync(
@@ -146,6 +179,7 @@ class HTTPClient:
         method: str,
         url: str,
         data: Optional[Dict[str, Any]] = None,
+        params: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
@@ -154,7 +188,8 @@ class HTTPClient:
         Args:
             method: HTTP method (GET, POST, PUT, DELETE, etc.).
             url: Request URL.
-            data: Form data to send.
+            data: Form data to send (for POST/PUT requests).
+            params: Query parameters to send (for GET requests).
             headers: Additional headers.
             **kwargs: Additional arguments for httpx.
 
@@ -172,15 +207,10 @@ class HTTPClient:
         if headers:
             request_headers.update(headers)
 
-        if data:
-            cleaned_data = {}
-            for key, value in data.items():
-                if value is not None:
-                    cleaned_data[key] = str(value)
-            data = cleaned_data
+        cleaned_data = self._clean_data(data)
+        cleaned_params = self._clean_params(params)
 
         try:
-            logger.debug(f"Making {method} request to {url}")
 
             if self._sync_client is None:
                 raise ZenoPayNetworkError("Sync HTTP client is not initialized.", None)
@@ -188,24 +218,24 @@ class HTTPClient:
             response = self._sync_client.request(
                 method=method,
                 url=url,
-                data=data,
+                data=cleaned_data,
+                params=cleaned_params,
                 headers=request_headers,
                 **kwargs,
             )
 
+            # Log response details for debugging
+
             return self._handle_response_sync(response)
 
         except httpx.TimeoutException as e:
-            logger.error(f"Request timeout: {e}")
             raise ZenoPayTimeoutError(
                 f"Request timeout after {self.config.timeout} seconds",
                 self.config.timeout,
             ) from e
         except httpx.NetworkError as e:
-            logger.error(f"Network error: {e}")
             raise ZenoPayNetworkError(f"Network error: {str(e)}", e) from e
         except Exception as e:
-            logger.error(f"Unexpected error: {e}")
             raise ZenoPayNetworkError(f"Unexpected error: {str(e)}", e) from e
 
     async def _handle_response(self, response: httpx.Response) -> Dict[str, Any]:
@@ -220,17 +250,14 @@ class HTTPClient:
         Raises:
             ZenoPayAPIError: For API errors.
         """
-        logger.debug(f"Response status: {response.status_code}")
+
+        response_data: Dict[str, Any] = {}
 
         try:
-            # Try to parse as JSON first
             response_data = response.json()
         except Exception:
-            # If JSON parsing fails, treat as text response
             response_text = response.text
-            logger.debug(f"Non-JSON response: {response_text}")
 
-            # For successful responses that aren't JSON, create a basic structure
             if response.is_success:
                 return {
                     "success": True,
@@ -238,20 +265,18 @@ class HTTPClient:
                     "message": "Request successful",
                 }
             else:
-                response_data: Dict[str, Any] = {
+                response_data = {
                     "success": False,
                     "error": response_text or f"HTTP {response.status_code}",
                     "message": f"Request failed with status {response.status_code}",
+                    "status_code": response.status_code,
                 }
 
         if response.is_success:
             return response_data
 
-        # Handle API errors
-        error_message = response_data.get("error", f"HTTP {response.status_code}")
-        error_code = response_data.get("code")
-
-        logger.error(f"API error: {response.status_code} - {error_message}")
+        error_message = self._extract_error_message(response_data, response)
+        error_code = response_data.get("code") or response_data.get("error_code")
 
         raise create_api_error(
             status_code=response.status_code,
@@ -272,17 +297,14 @@ class HTTPClient:
         Raises:
             ZenoPayAPIError: For API errors.
         """
-        logger.debug(f"Response status: {response.status_code}")
+
+        response_data: Dict[str, Any] = {}
 
         try:
-            # Try to parse as JSON first
             response_data = response.json()
         except Exception:
-            # If JSON parsing fails, treat as text response
             response_text = response.text
-            logger.debug(f"Non-JSON response: {response_text}")
 
-            # For successful responses that aren't JSON, create a basic structure
             if response.is_success:
                 return {
                     "success": True,
@@ -290,19 +312,18 @@ class HTTPClient:
                     "message": "Request successful",
                 }
             else:
-                response_data: Dict[str, Any] = {
+                response_data = {
                     "success": False,
                     "error": response_text or f"HTTP {response.status_code}",
                     "message": f"Request failed with status {response.status_code}",
+                    "status_code": response.status_code,
                 }
 
         if response.is_success:
             return response_data
 
-        error_message = response_data.get("error", f"HTTP {response.status_code}")
-        error_code = response_data.get("code")
-
-        logger.error(f"API error: {response.status_code} - {error_message}")
+        error_message = self._extract_error_message(response_data, response)
+        error_code = response_data.get("code") or response_data.get("error_code")
 
         raise create_api_error(
             status_code=response.status_code,
@@ -311,10 +332,103 @@ class HTTPClient:
             error_code=error_code,
         )
 
+    def _extract_error_message(self, response_data: Dict[str, Any], response: httpx.Response) -> str:
+        """Extract detailed error message from response data.
+
+        Args:
+            response_data: Parsed response data
+            response: HTTP response object
+
+        Returns:
+            Detailed error message
+        """
+
+        error_fields = ["error_description", "error", "message", "detail", "details", "error_message", "msg", "description", "reason"]
+
+        for field in error_fields:
+            if field in response_data and response_data[field]:
+                error_msg: str = response_data[field]
+                if isinstance(error_msg, dict):
+                    return str(error_msg)
+                return str(error_msg)
+
+        if "errors" in response_data:
+            errors: Dict[str, Any] = response_data["errors"]
+            error_parts: List[str] = []
+            for field, field_errors in errors.items():
+                field_name: str = field
+                if isinstance(field_errors, list):
+                    error_strs = [str(e) for e in field_errors]  # type: ignore
+                    error_parts.append(f"{field_name}: {', '.join(error_strs)}")
+                else:
+                    error_parts.append(f"{field_name}: {str(field_errors)}")
+            formatted_errors = "; ".join(error_parts)
+            return formatted_errors
+
+        if "success" in response_data and response_data["success"] is False:
+            print("DEBUG: Response indicates failure, checking for error details")
+
+        if "error" in response_data and isinstance(response_data["error"], dict):
+            nested_error: Dict[str, Any] = response_data["error"]  # type: ignore
+            for field in error_fields:
+                if field in nested_error:
+                    return str(nested_error[field])
+
+        response_text = response.text
+        if response_text and len(response_text) < 1000:
+            return f"HTTP {response.status_code}: {response_text}"
+
+        fallback = f"HTTP {response.status_code} - {response.reason_phrase or 'Unknown error'}"
+        return fallback
+
     async def post(self, url: str, data: Optional[Dict[str, Any]] = None, **kwargs: Any) -> Dict[str, Any]:
-        """Make a POST request."""
+        """Make an async POST request.
+
+        Args:
+            url: Request URL.
+            data: Form data to send.
+            **kwargs: Additional arguments for httpx.
+
+        Returns:
+            Parsed response data.
+        """
         return await self.request("POST", url, data=data, **kwargs)
 
     def post_sync(self, url: str, data: Optional[Dict[str, Any]] = None, **kwargs: Any) -> Dict[str, Any]:
-        """Make a sync POST request."""
+        """Make a sync POST request.
+
+        Args:
+            url: Request URL.
+            data: Form data to send.
+            **kwargs: Additional arguments for httpx.
+
+        Returns:
+            Parsed response data.
+        """
         return self.request_sync("POST", url, data=data, **kwargs)
+
+    async def get(self, url: str, params: Optional[Dict[str, Any]] = None, **kwargs: Any) -> Dict[str, Any]:
+        """Make an async GET request.
+
+        Args:
+            url: Request URL.
+            params: Query parameters to send.
+            **kwargs: Additional arguments for httpx.
+
+        Returns:
+            Parsed response data.
+        """
+        return await self.request("GET", url, params=params, **kwargs)
+
+    def get_sync(self, url: str, params: Optional[Dict[str, Any]] = None, **kwargs: Any) -> Dict[str, Any]:
+        """Make a sync GET request.
+
+        Args:
+            url: Request URL.
+            params: Query parameters to send.
+            **kwargs: Additional arguments for httpx.
+
+        Returns:
+            Parsed response data.
+        """
+        return self.request_sync("GET", url, params=params, **kwargs)

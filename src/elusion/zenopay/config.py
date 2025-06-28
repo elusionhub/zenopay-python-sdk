@@ -4,19 +4,15 @@ import os
 from typing import Dict, Optional
 from dotenv import load_dotenv
 
-# Load environment variables from .env file if it exists
 load_dotenv()
 
-# Default configuration
-DEFAULT_BASE_URL = "https://api.zeno.africa"
+DEFAULT_BASE_URL = "https://zenoapi.com"
 DEFAULT_TIMEOUT = 30.0
 DEFAULT_MAX_RETRIES = 3
 DEFAULT_RETRY_DELAY = 1.0
 
 # Environment variable names
 ENV_API_KEY = "ZENOPAY_API_KEY"
-ENV_SECRET_KEY = "ZENOPAY_SECRET_KEY"
-ENV_ACCOUNT_ID = "ZENOPAY_ACCOUNT_ID"
 ENV_BASE_URL = "ZENOPAY_BASE_URL"
 ENV_TIMEOUT = "ZENOPAY_TIMEOUT"
 
@@ -24,13 +20,14 @@ ENV_TIMEOUT = "ZENOPAY_TIMEOUT"
 DEFAULT_HEADERS = {
     "User-Agent": "zenopay-python-sdk",
     "Accept": "application/json",
-    "Content-Type": "application/x-www-form-urlencoded",
+    "Content-Type": "application/json",
 }
 
 # API endpoints
 ENDPOINTS = {
-    "create_order": "",
-    "order_status": "/order-status",
+    "create_order": "/api/payments/mobile_money_tanzania",
+    "order_status": "/api/payments/order-status",
+    "disbursement": "/api/payments/walletcashin/process/",
 }
 
 # Payment statuses
@@ -48,8 +45,6 @@ class ZenoPayConfig:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        secret_key: Optional[str] = None,
-        account_id: Optional[str] = None,
         base_url: Optional[str] = None,
         timeout: Optional[float] = None,
         max_retries: Optional[int] = None,
@@ -60,22 +55,18 @@ class ZenoPayConfig:
 
         Args:
             api_key: ZenoPay API key. If not provided, will try to get from environment.
-            secret_key: ZenoPay secret key. If not provided, will try to get from environment.
-            account_id: ZenoPay account ID. If not provided, will try to get from environment.
             base_url: Base URL for the ZenoPay API.
             timeout: Request timeout in seconds.
             max_retries: Maximum number of retries for failed requests.
             retry_delay: Delay between retries in seconds.
             headers: Additional headers to include in requests.
         """
-        self.api_key = api_key or os.getenv(ENV_API_KEY)
-        self.secret_key = secret_key or os.getenv(ENV_SECRET_KEY)
-        self.account_id = account_id or os.getenv(ENV_ACCOUNT_ID)
+        self.api_key = os.getenv(ENV_API_KEY) or api_key
 
-        if not self.account_id:
-            raise ValueError(f"Account ID is required. Set {ENV_ACCOUNT_ID} environment variable " "or pass account_id parameter.")
+        if not self.api_key:
+            raise ValueError(f"API key is required. Set {ENV_API_KEY} environment variable " "or pass api_key parameter.")
 
-        self.base_url = base_url or os.getenv(ENV_BASE_URL, DEFAULT_BASE_URL)
+        self.base_url = os.getenv(ENV_BASE_URL) or base_url or DEFAULT_BASE_URL
 
         # Parse timeout from environment if provided
         env_timeout = os.getenv(ENV_TIMEOUT)
@@ -91,8 +82,12 @@ class ZenoPayConfig:
         self.max_retries = max_retries or DEFAULT_MAX_RETRIES
         self.retry_delay = retry_delay or DEFAULT_RETRY_DELAY
 
-        # Merge default headers with custom headers
         self.headers = DEFAULT_HEADERS.copy()
+
+        if self.api_key:
+            self.headers["x-api-key"] = self.api_key
+
+        # Add any additional custom headers
         if headers:
             self.headers.update(headers)
 
@@ -104,13 +99,21 @@ class ZenoPayConfig:
 
         Returns:
             Full URL for the endpoint.
+
+        Raises:
+            ValueError: If endpoint is not found in ENDPOINTS.
         """
         if endpoint not in ENDPOINTS:
-            raise ValueError(f"Unknown endpoint: {endpoint}")
+            raise ValueError(f"Unknown endpoint: {endpoint}. Available endpoints: {list(ENDPOINTS.keys())}")
 
         endpoint_path = ENDPOINTS[endpoint]
         if endpoint_path:
             return f"{self.base_url.rstrip('/')}{endpoint_path}"
         else:
-            # For create_order, the base URL is the endpoint
             return self.base_url
+
+    def __repr__(self) -> str:
+        """String representation of the config."""
+        # Mask API key for security
+        masked_api_key = f"{self.api_key[:8]}..." if self.api_key and len(self.api_key) > 8 else self.api_key
+        return f"ZenoPayConfig(api_key='{masked_api_key}', base_url='{self.base_url}')"

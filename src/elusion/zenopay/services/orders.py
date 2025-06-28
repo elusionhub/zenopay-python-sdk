@@ -1,10 +1,10 @@
 """Order service for the ZenoPay SDK"""
 
-from typing import Dict, Union
+from typing import Any, Dict, Union
 
 from elusion.zenopay.config import ZenoPayConfig
 from elusion.zenopay.http import HTTPClient
-from elusion.zenopay.models.common import APIResponse, StatusCheckRequest
+from elusion.zenopay.models.common import APIResponse
 from elusion.zenopay.models.order import (
     NewOrder,
     OrderResponse,
@@ -16,7 +16,7 @@ from elusion.zenopay.services.base import BaseService
 class OrderSyncMethods(BaseService):
     """Sync methods for OrderService - inherits from BaseService for direct access."""
 
-    def create(self, order_data: Union[NewOrder, Dict[str, str]]) -> APIResponse[OrderResponse]:
+    def create(self, order_data: NewOrder) -> APIResponse[OrderResponse]:
         """Create a new order and initiate USSD payment (sync).
 
         Args:
@@ -30,11 +30,10 @@ class OrderSyncMethods(BaseService):
             ...     response = zenopay_client.orders.sync.create(order_data)
             ...     print(f"Order created: {response.data.order_id}")
         """
-        # ✅ Direct access to post_sync - no parent needed
         return self.post_sync("create_order", order_data, OrderResponse)
 
-    def get_status(self, order_id: str) -> APIResponse[OrderStatusResponse]:
-        """Check the status of an existing order (sync).
+    def check_status(self, order_id: str) -> APIResponse[OrderStatusResponse]:
+        """Check the status of an existing order using GET request (sync).
 
         Args:
             order_id: The order ID to check status for.
@@ -42,21 +41,16 @@ class OrderSyncMethods(BaseService):
         Returns:
             Order status response with payment details.
         """
-        status_request = StatusCheckRequest(
-            order_id=order_id,
-            api_key=self.config.api_key,
-            secret_key=self.config.secret_key,
-            account_id=self.config.account_id or "",
-            check_status=1,
-        )
-        # ✅ Direct access - clean and simple
-        return self.post_sync("order_status", status_request, OrderStatusResponse)
+        params: Dict[str, Any] = {
+            "order_id": order_id,
+        }
+        return self.get_sync("order_status", OrderStatusResponse, params=params)
 
     def check_payment(self, order_id: str) -> bool:
         """Check if an order has been paid (sync)."""
         try:
-            status_response = self.get_status(order_id)
-            return status_response.data.payment_status == "COMPLETED"
+            status_response = self.check_status(order_id)
+            return status_response.results.data[0].payment_status == "COMPLETED"
         except Exception:
             return False
 
@@ -67,12 +61,12 @@ class OrderSyncMethods(BaseService):
         start_time = time.time()
 
         while True:
-            status_response = self.get_status(order_id)
+            status_response = self.check_status(order_id)
 
-            if status_response.data.payment_status == "COMPLETED":
+            if status_response.results.data[0].payment_status == "COMPLETED":
                 return status_response
 
-            if status_response.data.payment_status == "FAILED":
+            if status_response.results.data[0].payment_status == "FAILED":
                 raise Exception(f"Payment failed for order {order_id}")
 
             elapsed = time.time() - start_time
@@ -91,41 +85,51 @@ class OrderService(BaseService):
         self.sync = OrderSyncMethods(http_client, config)
 
     async def create(self, order_data: Union[NewOrder, Dict[str, str]]) -> APIResponse[OrderResponse]:
-        """Create a new order and initiate USSD payment."""
-        return await self._post("create_order", order_data, OrderResponse)
+        """Create a new order and initiate USSD payment (async).
 
-    async def get_status(self, order_id: str) -> APIResponse[OrderStatusResponse]:
-        """Check the status of an existing order."""
-        status_request = StatusCheckRequest(
-            order_id=order_id,
-            api_key=self.config.api_key,
-            secret_key=self.config.secret_key,
-            account_id=self.config.account_id or "",
-            check_status=1,
-        )
-        return await self._post("order_status", status_request, OrderStatusResponse)
+        Args:
+            order_data: Order creation data.
+
+        Returns:
+            Created order response with order_id and status.
+        """
+        return await self.post_async("create_order", order_data, OrderResponse)
+
+    async def check_status(self, order_id: str) -> APIResponse[OrderStatusResponse]:
+        """Check the status of an existing order using GET request (async).
+
+        Args:
+            order_id: The order ID to check status for.
+
+        Returns:
+            Order status response with payment details.
+        """
+        params: Dict[str, Any] = {
+            "order_id": order_id,
+        }
+        return await self.get_async("order_status", OrderStatusResponse, params=params)
 
     async def check_payment(self, order_id: str) -> bool:
-        """Check if an order has been paid."""
+        """Check if an order has been paid (async)."""
         try:
-            status_response = await self.get_status(order_id)
-            return status_response.data.payment_status == "COMPLETED"
+            status_response = await self.check_status(order_id)
+            return status_response.results.data[0].payment_status == "COMPLETED"
         except Exception:
             return False
 
     async def wait_for_payment(self, order_id: str, timeout: int = 300, poll_interval: int = 10) -> APIResponse[OrderStatusResponse]:
-        """Wait for an order to be paid."""
+        """Wait for an order to be paid (async)."""
         import asyncio
 
         start_time = asyncio.get_event_loop().time()
 
         while True:
-            status_response = await self.get_status(order_id)
+            status_response = await self.check_status(order_id)
 
-            if status_response.data.payment_status == "COMPLETED":
+            if status_response.results.data[0].payment_status == "COMPLETED":
                 return status_response
 
-            if status_response.data.payment_status == "FAILED":
+            if status_response.results.data[0].payment_status == "FAILED":
                 raise Exception(f"Payment failed for order {order_id}")
 
             elapsed = asyncio.get_event_loop().time() - start_time
