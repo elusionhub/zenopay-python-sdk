@@ -2,6 +2,8 @@
 
 Modern Python SDK for ZenoPay payment API with async/sync support, order management, and disbursements.
 
+**NEW in v0.3.0**: Utility Payments API now available! Pay for airtime, electricity, TV subscriptions, internet, government bills, and more.
+
 ## Installation
 
 ```bash
