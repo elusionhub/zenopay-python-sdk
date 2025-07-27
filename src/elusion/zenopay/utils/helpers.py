@@ -39,7 +39,7 @@ def parse_amount(amount_str: str, currency: str = "TZS") -> int:
         raise ValueError(f"Invalid amount format: {amount_str}")
 
 
-def generate_order_id(prefix: Optional[str] = None) -> str:
+def generate_id(prefix: Optional[str] = None) -> str:
     """Generate a unique order ID using UUID.
 
     Args:
@@ -49,13 +49,13 @@ def generate_order_id(prefix: Optional[str] = None) -> str:
         Unique order ID string.
 
     Examples:
-        >>> generate_order_id()
+        >>> generate_id()
         'f47ac10b-58cc-4372-a567-0e02b2c3d479'
 
-        >>> generate_order_id(prefix="ORDER")
+        >>> generate_id(prefix="ORDER")
         'ORDER_f47ac10b-58cc-4372-a567-0e02b2c3d479'
 
-        >>> generate_order_id(prefix="SHOP")
+        >>> generate_id(prefix="SHOP")
         'SHOP_f47ac10b-58cc-4372-a567-0e02b2c3d479'
     """
     unique_id = str(uuid.uuid4())
@@ -66,7 +66,7 @@ def generate_order_id(prefix: Optional[str] = None) -> str:
     return unique_id
 
 
-def generate_short_order_id(prefix: Optional[str] = None, length: int = 8) -> str:
+def generate_short_id(prefix: Optional[str] = None, length: int = 8) -> str:
     """Generate a shorter unique order ID using UUID.
 
     Args:
@@ -77,10 +77,10 @@ def generate_short_order_id(prefix: Optional[str] = None, length: int = 8) -> st
         Shorter unique order ID string.
 
     Examples:
-        >>> generate_short_order_id()
+        >>> generate_short_id()
         'f47ac10b'
 
-        >>> generate_short_order_id(prefix="ORD", length=12)
+        >>> generate_short_id(prefix="ORD", length=12)
         'ORD_f47ac10b58cc'
     """
     unique_id = str(uuid.uuid4()).replace("-", "")[:length]

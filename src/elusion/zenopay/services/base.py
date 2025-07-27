@@ -107,6 +107,7 @@ class BaseService:
             )
 
         except ValidationError as e:
+            # print(f"{response_data}")
             raise ZenoPayValidationError(
                 f"Failed to parse response: {str(e)}",
                 validation_errors={"errors": e.errors()},

@@ -28,6 +28,7 @@ ENDPOINTS = {
     "create_order": "/api/payments/mobile_money_tanzania",
     "order_status": "/api/payments/order-status",
     "disbursement": "/api/payments/walletcashin/process/",
+    "utility-payments": "/api/payments/utilitypayment/process/",
 }
 
 # Payment statuses

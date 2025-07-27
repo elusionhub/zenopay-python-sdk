@@ -1,7 +1,17 @@
 """Models package for the ZenoPay SDK."""
 
 from elusion.zenopay.models.common import PAYMENT_STATUSES, APIResponse, StatusCheckRequest, UtilityCodes
-
+from elusion.zenopay.models.utility_payments import (
+    NewUtilityPayment,
+    PensionMerchantService,
+    FlightTicketService,
+    GovernmentService,
+    InternetService,
+    TVSubscriptionService,
+    ElectricityService,
+    AirtimeService,
+    UtilityPaymentResponse
+)
 from elusion.zenopay.models.order import (
     OrderBase,
     NewOrder,
@@ -43,4 +53,14 @@ __all__ = [
     # Disbursement
     "NewDisbursement",
     "DisbursementSuccessResponse",
+    # Utility Payments
+    "NewUtilityPayment",
+    "PensionMerchantService",
+    "FlightTicketService",
+    "GovernmentService",
+    "InternetService",
+    "TVSubscriptionService",
+    "ElectricityService",
+    "AirtimeService",
+    "UtilityPaymentResponse"
 ]

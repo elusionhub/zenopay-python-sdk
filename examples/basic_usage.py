@@ -1,7 +1,7 @@
 import asyncio
 from elusion.zenopay import ZenoPay
 from elusion.zenopay.models.order import NewOrder
-from elusion.zenopay.utils import generate_order_id
+from elusion.zenopay.utils import generate_id
 
 
 # Setup
@@ -12,7 +12,7 @@ client = ZenoPay()
 def create_order():
     with client:
         order = NewOrder(
-            order_id=generate_order_id(),
+            order_id=generate_id(),
             buyer_email="test@example.com",
             buyer_name="Test User",
             buyer_phone="0781588379",
@@ -42,10 +42,10 @@ def wait_for_payment(order_id: str):
 
 
 # Create order (async)
-async def create_order_async():
+async def create_async():
     async with client:
         order = NewOrder(
-            order_id=generate_order_id(),
+            order_id=generate_id(),
             buyer_email="test@example.com",
             buyer_name="Test User",
             buyer_phone="0781588379",
@@ -85,7 +85,7 @@ if __name__ == "__main__":
 
     # Async usage
     async def async_example():
-        order_id = await create_order_async()
+        order_id = await create_async()
         status = await check_status_async(order_id)
         is_paid = await check_payment_async(order_id)
 

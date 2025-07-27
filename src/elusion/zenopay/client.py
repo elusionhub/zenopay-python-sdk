@@ -9,6 +9,7 @@ from elusion.zenopay.http import HTTPClient
 from elusion.zenopay.services import OrderService
 from elusion.zenopay.services import WebhookService
 from elusion.zenopay.services import DisbursementService
+from elusion.zenopay.services import UtilityPaymentsService
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +71,7 @@ class ZenoPayClient:
         # Initialize services
         self.orders = OrderService(self.http_client, self.config)
         self.disbursements = DisbursementService(self.http_client, self.config)
+        self.utilities = UtilityPaymentsService(self.http_client, self.config)
         self.webhooks = WebhookService()
 
         logger.info(f"ZenoPay client initialized for account: {api_key}")
