@@ -15,7 +15,7 @@ def create_order():
             order_id=generate_id(),
             buyer_email="test@example.com",
             buyer_name="Test User",
-            buyer_phone="0781588379",
+            buyer_phone="06XXXXXXX",
             amount=1000,
         )
         response = client.orders.sync.create(order)
@@ -48,7 +48,7 @@ async def create_async():
             order_id=generate_id(),
             buyer_email="test@example.com",
             buyer_name="Test User",
-            buyer_phone="0781588379",
+            buyer_phone="06XXXXXXX",
             amount=1000,
             webhook_url="https://example.com/webhook",
             metadata={"key": "value"},

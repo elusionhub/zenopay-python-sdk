@@ -5,6 +5,23 @@ All notable changes to the ZenoPay Python SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-08-01
+
+### Added
+
+- **Checkout API**: Secure payment checkout session functionality
+- New `CheckoutService` with sync/async support
+- Support for 16 international currencies:
+  - **Major Currencies**: `USD`, `EUR`, `GBP`, `CAD`, `AUD`, `CHF`
+  - **African Currencies**: `TZS`, `KES`, `UGX`, `NGN`, `ZAR`
+  - **Middle East & Asia**: `SAR`, `AED`, `INR`, `CNY`, `JPY`
+- New `Currency` enum for type-safe currency selection
+- New `NewCheckout` model with validation and redirect URL support
+- `CheckoutResponse` model returning payment links and transaction references
+- Client access via `client.checkout.sync.create()` and `client.checkout.create()`
+- Multi-currency checkout session creation
+- Automatic redirect URL validation (HTTPS enforcement)
+
 ## [0.3.0] - 2025-07-27
 
 ### Added
@@ -65,12 +82,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Features by Version
 
-| Version   | Core Features                                 |
-| --------- | --------------------------------------------- |
-| **0.3.0** | Orders + Disbursements + **Utility Payments** |
-| **0.2.0** | Orders + **Disbursements**                    |
-| **0.1.0** | **Orders + Webhooks**                         |
-| **0.0.1** | **Foundation**                                |
+| Version   | Core Features                                            |
+| --------- | -------------------------------------------------------- |
+| **0.4.0** | Orders + Disbursements + Utility Payments + **Checkout** |
+| **0.3.0** | Orders + Disbursements + **Utility Payments**            |
+| **0.2.0** | Orders + **Disbursements**                               |
+| **0.1.0** | **Orders + Webhooks**                                    |
+| **0.0.1** | **Foundation**                                           |
 
 ## Support
 

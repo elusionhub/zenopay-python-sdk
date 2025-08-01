@@ -1,6 +1,6 @@
 """Models package for the ZenoPay SDK."""
 
-from elusion.zenopay.models.common import PAYMENT_STATUSES, APIResponse, StatusCheckRequest, UtilityCodes
+from elusion.zenopay.models.common import PAYMENT_STATUSES, APIResponse, StatusCheckRequest, UtilityCodes, Currency
 from elusion.zenopay.models.utility_payments import (
     NewUtilityPayment,
     PensionMerchantService,
@@ -39,6 +39,7 @@ __all__ = [
     "APIResponse",
     "StatusCheckRequest",
     "UtilityCodes",
+    "Currency",
     # Order models
     "OrderBase",
     "NewOrder",

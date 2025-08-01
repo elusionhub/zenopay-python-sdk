@@ -80,7 +80,31 @@ class UtilityCodes(str, Enum):
         return self.value
 
 
-# Common status constants
+class Currency(str, Enum):
+    """Supported currency codes."""
+
+    USD = "USD"  # US Dollar
+    TZS = "TZS"  # Tanzanian Shilling
+    GBP = "GBP"  # British Pound
+    EUR = "EUR"  # Euro
+    NGN = "NGN"  # Nigerian Naira
+    KES = "KES"  # Kenyan Shilling
+    UGX = "UGX"  # Ugandan Shilling
+    ZAR = "ZAR"  # South African Rand
+    INR = "INR"  # Indian Rupee
+    CAD = "CAD"  # Canadian Dollar
+    AUD = "AUD"  # Australian Dollar
+    CHF = "CHF"  # Swiss Franc
+    SAR = "SAR"  # Saudi Riyal
+    AED = "AED"  # Emirati Dirham
+    CNY = "CNY"  # Chinese Yuan
+    JPY = "JPY"  # Japanese Yen
+
+    def __str__(self) -> str:
+        """String representation of the currency code."""
+        return self.value
+
+
 PAYMENT_STATUSES = {
     "PENDING": "PENDING",
     "COMPLETED": "COMPLETED",

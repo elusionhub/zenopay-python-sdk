@@ -1,24 +1,24 @@
 """Main client for the ZenoPay SDK."""
 
-import logging
 from typing import Optional, Type
 from types import TracebackType
 
 from elusion.zenopay.config import ZenoPayConfig
 from elusion.zenopay.http import HTTPClient
-from elusion.zenopay.services import OrderService
-from elusion.zenopay.services import WebhookService
-from elusion.zenopay.services import DisbursementService
-from elusion.zenopay.services import UtilityPaymentsService
-
-logger = logging.getLogger(__name__)
+from elusion.zenopay.services import (
+    OrderService,
+    WebhookService,
+    DisbursementService,
+    UtilityPaymentsService,
+    CheckoutService,
+)
 
 
 class ZenoPayClient:
     """Main client for interacting with the ZenoPay API.
 
     This client provides access to all ZenoPay services including order management,
-    payment processing, and webhook handling. It supports both async and sync operations.
+    payment processing, checkout sessions, and webhook handling. It supports both async and sync operations.
 
     Examples:
         Basic usage:
@@ -31,7 +31,7 @@ class ZenoPayClient:
         ...         "buyer_name": "example name",
         ...         "buyer_phone": "06XXXXXXXX",
         ...         "amount": 1000,
-        ...         "webhook_url": "https://yourwebsite.xyz/webhook"
+        ...         "webhook_url": "https://example.xyz/webhook"
         ...     })
 
         Sync usage:
@@ -42,6 +42,16 @@ class ZenoPayClient:
         ...         "buyer_phone": "06XXXXXXXX",
         ...         "amount": 1000
         ...     })
+
+        Checkout usage:
+        >>> checkout = await client.checkout.create_checkout({
+        ...     "buyer_email": "example@example.xyz",
+        ...     "buyer_name": "example name",
+        ...     "buyer_phone": "06XXXXXXXX",
+        ...     "amount": 1000,
+        ...     "currency": "TZS",
+        ...     "redirect_url": "https://example.xyz/success"
+        ... })
     """
 
     def __init__(
@@ -68,13 +78,11 @@ class ZenoPayClient:
 
         self.http_client = HTTPClient(self.config)
 
-        # Initialize services
         self.orders = OrderService(self.http_client, self.config)
+        self.checkout = CheckoutService(self.http_client, self.config)
         self.disbursements = DisbursementService(self.http_client, self.config)
         self.utilities = UtilityPaymentsService(self.http_client, self.config)
         self.webhooks = WebhookService()
-
-        logger.info(f"ZenoPay client initialized for account: {api_key}")
 
     async def __aenter__(self) -> "ZenoPayClient":
         """Enter async context manager."""
@@ -128,4 +136,5 @@ class ZenoPayClient:
 
     def __repr__(self) -> str:
         """String representation of the client."""
-        return f"ZenoPayClient(api_key='{self.api_key}', base_url='{self.base_url}')"
+        masked_key = f"{self.api_key[:8]}..." if self.api_key and len(self.api_key) > 8 else "***"
+        return f"ZenoPayClient(api_key='{masked_key}', base_url='{self.base_url}')"

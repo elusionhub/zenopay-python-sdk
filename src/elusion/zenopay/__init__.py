@@ -1,7 +1,7 @@
 """ZenoPay SDK for Python.
 
 A modern Python SDK for the ZenoPay payment API with support for USSD payments,
-order management, and webhook handling.
+checkout sessions, order management, and webhook handling.
 """
 
 __version__ = "0.3.0"
@@ -22,6 +22,11 @@ from elusion.zenopay.models import (
     OrderStatus,
     WebhookEvent,
     WebhookPayload,
+    Currency,
+)
+from elusion.zenopay.models.checkout import (
+    NewCheckout,
+    CheckoutResponse,
 )
 
 __all__ = [
@@ -39,4 +44,8 @@ __all__ = [
     "OrderStatus",
     "WebhookEvent",
     "WebhookPayload",
+    "Currency",
+    # Checkout models
+    "NewCheckout",
+    "CheckoutResponse",
 ]

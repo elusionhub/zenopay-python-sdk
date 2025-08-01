@@ -52,11 +52,11 @@ class NewOrder(OrderBase):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "buyer_email": "jackson@gmail.com",
-                "buyer_name": "Jackson Dastani",
-                "buyer_phone": "0652449389",
+                "buyer_email": "amarakofi@gmail.com",
+                "buyer_name": "Amara Kofi",
+                "buyer_phone": "06XXXXXXX",
                 "amount": 1000,
-                "webhook_url": "https://yourwebsite.com/webhook",
+                "webhook_url": "https://example.com/webhook",
                 "metadata": {
                     "product_id": "12345",
                     "color": "blue",
@@ -135,13 +135,13 @@ class Order(BaseModel):
         json_schema_extra={
             "example": {
                 "id": "66c4bb9c9abb1",
-                "buyer_email": "jackson@gmail.com",
-                "buyer_name": "Jackson Dastani",
-                "buyer_phone": "0652449389",
+                "buyer_email": "amarakofi@gmail.com",
+                "buyer_name": "Amara Kofi",
+                "buyer_phone": "06XXXXXXX",
                 "amount": 1000,
                 "payment_status": "COMPLETED",
                 "reference": "1003020496",
-                "webhook_url": "https://yourwebsite.com/webhook",
+                "webhook_url": "https://example.com/webhook",
                 "metadata": {
                     "product_id": "12345",
                     "color": "blue",

@@ -1,8 +1,10 @@
 # ZenoPay Python SDK
 
-Modern Python SDK for ZenoPay payment API with async/sync support, order management, and disbursements.
+Modern Python SDK for ZenoPay payment API with async/sync support, order management, disbursements, and checkout sessions.
 
-**NEW in v0.3.0**: Utility Payments API now available! Pay for airtime, electricity, TV subscriptions, internet, government bills, and more.
+**NEW in v0.4.0**: Checkout API now available! Create secure payment checkout sessions with multi-currency support and redirect handling.
+
+**v0.3.0**: Utility Payments API - Pay for airtime, electricity, TV subscriptions, internet, government bills, and more.
 
 ## Installation
 
@@ -15,7 +17,7 @@ pip install zenopay-sdk
 ```python
 from elusion.zenopay import ZenoPay
 from elusion.zenopay.models.order import NewOrder
-from elusion.zenopay.utils import generate_order_id
+from elusion.zenopay.utils import generate_id
 
 # Initialize client (uses environment variables)
 client = ZenoPay()
@@ -23,7 +25,7 @@ client = ZenoPay()
 # Create order (sync)
 with client:
     order = NewOrder(
-        order_id=generate_order_id(),
+        order_id=generate_id(),
         buyer_email="customer@example.com",
         buyer_name="John Doe",
         buyer_phone="07XXXXXXXX",
@@ -50,6 +52,80 @@ client = ZenoPay(
 )
 ```
 
+## Checkout API
+
+### Create Checkout Sessions
+
+```python
+from elusion.zenopay import ZenoPay, Currency
+from elusion.zenopay.models.checkout import NewCheckout
+
+client = ZenoPay()
+
+# Synchronous checkout
+def create_checkout():
+    with client:
+        checkout = NewCheckout(
+            buyer_email="customer@example.com",
+            buyer_name="John Doe",
+            buyer_phone="0781588379",
+            amount=1000,
+            currency=Currency.TZS,
+            redirect_url="https://yourwebsite.com/success"
+        )
+        response = client.checkout.sync.create(checkout)
+        return response.results
+
+# Asynchronous checkout
+async def create_checkout_async():
+    async with client:
+        checkout = NewCheckout(
+            buyer_email="customer@example.com",
+            buyer_name="John Doe",
+            buyer_phone="0781588379",
+            amount=2000,
+            currency=Currency.USD,
+            redirect_url="https://yourwebsite.com/success"
+        )
+        response = await client.checkout.create(checkout)
+        return response.results
+
+# Usage example
+if __name__ == "__main__":
+    # Sync checkout
+    checkout_result = create_checkout()
+    print(f"Payment Link: {checkout_result.payment_link}")
+    print(f"Transaction Reference: {checkout_result.tx_ref}")
+```
+
+### Supported Currencies
+
+```python
+from elusion.zenopay import Currency
+
+# Major international currencies
+Currency.USD  # US Dollar
+Currency.EUR  # Euro
+Currency.GBP  # British Pound
+Currency.CAD  # Canadian Dollar
+Currency.AUD  # Australian Dollar
+Currency.CHF  # Swiss Franc
+
+# African currencies
+Currency.TZS  # Tanzanian Shilling
+Currency.KES  # Kenyan Shilling
+Currency.UGX  # Ugandan Shilling
+Currency.NGN  # Nigerian Naira
+Currency.ZAR  # South African Rand
+
+# Middle East & Asia
+Currency.SAR  # Saudi Riyal
+Currency.AED  # Emirati Dirham
+Currency.INR  # Indian Rupee
+Currency.CNY  # Chinese Yuan
+Currency.JPY  # Japanese Yen
+```
+
 ## Orders API
 
 ### Synchronous Operations
@@ -57,7 +133,7 @@ client = ZenoPay(
 ```python
 from elusion.zenopay import ZenoPay
 from elusion.zenopay.models.order import NewOrder
-from elusion.zenopay.utils import generate_order_id
+from elusion.zenopay.utils import generate_id
 
 client = ZenoPay()
 
@@ -65,7 +141,7 @@ client = ZenoPay()
 def create_order():
     with client:
         order = NewOrder(
-            order_id=generate_order_id(),
+            order_id=generate_id(),
             buyer_email="test@example.com",
             buyer_name="Test User",
             buyer_phone="07XXXXXXXX",
@@ -110,15 +186,15 @@ if __name__ == "__main__":
 import asyncio
 from elusion.zenopay import ZenoPay
 from elusion.zenopay.models.order import NewOrder
-from elusion.zenopay.utils import generate_order_id
+from elusion.zenopay.utils import generate_id
 
 client = ZenoPay()
 
 # Create order (async)
-async def create_order_async():
+async def create_async():
     async with client:
         order = NewOrder(
-            order_id=generate_order_id(),
+            order_id=generate_id(),
             buyer_email="test@example.com",
             buyer_name="Test User",
             buyer_phone="07XXXXXXXX",
@@ -142,7 +218,7 @@ async def check_payment_async(order_id: str):
 
 # Usage example
 async def async_example():
-    order_id = await create_order_async()
+    order_id = await create_async()
     status = await check_status_async(order_id)
     is_paid = await check_payment_async(order_id)
 
@@ -160,7 +236,7 @@ asyncio.run(async_example())
 ```python
 from elusion.zenopay import ZenoPay
 from elusion.zenopay.models.disbursement import NewDisbursement, UtilityCodes
-from elusion.zenopay.utils import generate_order_id
+from elusion.zenopay.utils import generate_id
 
 client = ZenoPay()
 
@@ -169,7 +245,7 @@ def disburse():
         disbursement_data=NewDisbursement(
             amount=5000,
             pin=0000,  # Your ZenoPay PIN
-            transid=generate_order_id(),
+            transid=generate_id(),
             utilitycode=UtilityCodes.CASHIN,
             utilityref="07XXXXXXXX"  # Phone number
         )
@@ -291,20 +367,37 @@ except ZenoPayError as e:
 
 ## Models
 
+### Checkout Models
+
+```python
+from elusion.zenopay import Currency
+from elusion.zenopay.models.checkout import NewCheckout
+
+# Create checkout session
+checkout = NewCheckout(
+    buyer_email="customer@example.com",
+    buyer_name="John Doe",
+    buyer_phone="0781588379",
+    amount=1000,
+    currency=Currency.TZS,
+    redirect_url="https://yourwebsite.com/success"
+)
+```
+
 ### Order Models
 
 ```python
 from elusion.zenopay.models.order import NewOrder
-from elusion.zenopay.utils import generate_order_id
+from elusion.zenopay.utils import generate_id
 
 # Create order with all fields
 order = NewOrder(
-    order_id=generate_order_id(),
+    order_id=generate_id(),
     buyer_email="customer@example.com",
     buyer_name="John Doe",
     buyer_phone="07XXXXXXXX",
     amount=1000,
-    webhook_url="https://yoursite.com/webhook",
+    webhook_url="https://example.com/webhook",
     metadata={
         "product_id": "12345",
         "campaign": "summer_sale"
@@ -313,7 +406,7 @@ order = NewOrder(
 
 # Minimal order
 order = NewOrder(
-    order_id=generate_order_id(),
+    order_id=generate_id(),
     buyer_email="customer@example.com",
     buyer_name="John Doe",
     buyer_phone="07XXXXXXXX",
@@ -325,13 +418,13 @@ order = NewOrder(
 
 ```python
 from elusion.zenopay.models.disbursement import NewDisbursement, UtilityCodes
-from elusion.zenopay.utils import generate_order_id
+from elusion.zenopay.utils import generate_id
 
 # Mobile money disbursement
 disbursement = NewDisbursement(
     amount=5000,
     pin=0000,  # Your ZenoPay PIN
-    transid=generate_order_id(),
+    transid=generate_id(),
     utilitycode=UtilityCodes.CASHIN,
     utilityref="07XXXXXXXX"  # Phone number
 )
@@ -340,6 +433,11 @@ disbursement = NewDisbursement(
 ### Response Models
 
 ```python
+# Checkout response
+checkout_response = client.checkout.sync.create(checkout)
+print(f"Payment Link: {checkout_response.results.payment_link}")
+print(f"Transaction Reference: {checkout_response.results.tx_ref}")
+
 # Order creation response
 response = client.orders.sync.create(order)
 print(f"Order ID: {response.results.order_id}")
@@ -354,6 +452,12 @@ print(f"Result: {response.results.zenopay_response.result}")
 ```
 
 ## API Reference
+
+### Checkout Operations
+
+| Method          | Sync                            | Async                            | Description                     |
+| --------------- | ------------------------------- | -------------------------------- | ------------------------------- |
+| Create Checkout | `client.checkout.sync.create()` | `await client.checkout.create()` | Create payment checkout session |
 
 ### Order Operations
 
@@ -425,11 +529,10 @@ client = ZenoPay(api_key=os.getenv('ZENOPAY_API_KEY'))
 Always use the built-in utility to generate unique order IDs:
 
 ```python
-from elusion.zenopay.utils import generate_order_id
+from elusion.zenopay.utils import generate_id
 
-order_id = generate_order_id()  # Generates UUID-based unique ID
+order_id = generate_id()
 ```
-
 
 ## Support
 
