@@ -7,9 +7,7 @@ client = ZenoPay()
 
 def disburse():
     response = client.disbursements.sync.disburse(
-        disbursement_data=NewDisbursement(
-            amount=5000, pin=0000, transid=generate_id(), utilitycode=UtilityCodes.CASHIN, utilityref="07XXXXXXXX"
-        )
+        disbursement_data=NewDisbursement(amount=5000, pin=0000, transid=generate_id(), utilitycode=UtilityCodes.CASHIN, utilityref="07XXXXXXXX")
     )
     return response.results.zenopay_response.result
 

@@ -10,7 +10,7 @@ from elusion.zenopay.models.utility_payments import (
     TVSubscriptionService,
     ElectricityService,
     AirtimeService,
-    UtilityPaymentResponse
+    UtilityPaymentResponse,
 )
 from elusion.zenopay.models.order import (
     OrderBase,
@@ -62,5 +62,5 @@ __all__ = [
     "TVSubscriptionService",
     "ElectricityService",
     "AirtimeService",
-    "UtilityPaymentResponse"
+    "UtilityPaymentResponse",
 ]

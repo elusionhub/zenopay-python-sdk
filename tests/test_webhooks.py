@@ -275,7 +275,7 @@ class TestWebhookIntegration:
         """Test webhook service integration with ZenoPay client."""
         from elusion.zenopay import ZenoPay
 
-        client = ZenoPay(account_id="test-account")
+        client = ZenoPay(api_key="test_api_key")
 
         # Test that webhook service is available
         assert hasattr(client, "webhooks")
