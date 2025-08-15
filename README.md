@@ -244,7 +244,7 @@ def disburse():
     response = client.disbursements.sync.disburse(
         disbursement_data=NewDisbursement(
             amount=5000,
-            pin=0000,  # Your ZenoPay PIN
+            pin="0000",  # Your ZenoPay PIN
             transid=generate_id(),
             utilitycode=UtilityCodes.CASHIN,
             utilityref="07XXXXXXXX"  # Phone number
@@ -423,7 +423,7 @@ from elusion.zenopay.utils import generate_id
 # Mobile money disbursement
 disbursement = NewDisbursement(
     amount=5000,
-    pin=0000,  # Your ZenoPay PIN
+    pin="0000",  # Your ZenoPay PIN
     transid=generate_id(),
     utilitycode=UtilityCodes.CASHIN,
     utilityref="07XXXXXXXX"  # Phone number
