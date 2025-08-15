@@ -8,7 +8,11 @@ class NewDisbursement(BaseModel):
     utilitycode: str = Field(default=UtilityCodes.CASHIN, description='Set to "CASHIN" for disbursements.')
     utilityref: str = Field(..., description="Mobile number to receive the funds (e.g., 0744963858).")
     amount: int = Field(..., description="Amount to send in Tanzanian Shillings (TZS).")
-    pin: int = Field(..., description="4-digit wallet PIN to authorize the transaction.", ge=0000, le=9999)
+    pin: str = Field(
+        ...,
+        description="4-digit wallet PIN to authorize the transaction.",
+        pattern=r"^\d{4}$"
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
